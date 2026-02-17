@@ -16,6 +16,7 @@
 		AAF56F102F44193C0062BA2E /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F0F2F44193C0062BA2E /* LocationManager.swift */; };
 		AAF56F122F44D0430062BA2E /* Stations.csv in Resources */ = {isa = PBXBuildFile; fileRef = AAF56F112F44D0360062BA2E /* Stations.csv */; };
 		AAF56F142F44D1620062BA2E /* AirportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F132F44D1620062BA2E /* AirportManager.swift */; };
+		AAF56F162F4509270062BA2E /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F152F4509260062BA2E /* WeatherManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		AAF56F0F2F44193C0062BA2E /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		AAF56F112F44D0360062BA2E /* Stations.csv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Stations.csv; sourceTree = "<group>"; };
 		AAF56F132F44D1620062BA2E /* AirportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportManager.swift; sourceTree = "<group>"; };
+		AAF56F152F4509260062BA2E /* WeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,7 +48,6 @@
 		AAF56EEF2F4417290062BA2E = {
 			isa = PBXGroup;
 			children = (
-				AAF56F132F44D1620062BA2E /* AirportManager.swift */,
 				AAF56F112F44D0360062BA2E /* Stations.csv */,
 				AAF56EFA2F4417290062BA2E /* DMMSAlerts */,
 				AAF56EF92F4417290062BA2E /* Products */,
@@ -64,6 +65,7 @@
 		AAF56EFA2F4417290062BA2E /* DMMSAlerts */ = {
 			isa = PBXGroup;
 			children = (
+				AAF56F132F44D1620062BA2E /* AirportManager.swift */,
 				AAF56EFB2F4417290062BA2E /* AppDelegate.swift */,
 				AAF56EFD2F44172A0062BA2E /* SceneDelegate.swift */,
 				AAF56EFF2F44172A0062BA2E /* ViewController.swift */,
@@ -72,6 +74,7 @@
 				AAF56F062F44174E0062BA2E /* LaunchScreen.storyboard */,
 				AAF56F092F44174E0062BA2E /* Info.plist */,
 				AAF56F0F2F44193C0062BA2E /* LocationManager.swift */,
+				AAF56F152F4509260062BA2E /* WeatherManager.swift */,
 			);
 			path = DMMSAlerts;
 			sourceTree = "<group>";
@@ -148,6 +151,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAF56F162F4509270062BA2E /* WeatherManager.swift in Sources */,
 				AAF56F102F44193C0062BA2E /* LocationManager.swift in Sources */,
 				AAF56F002F44172A0062BA2E /* ViewController.swift in Sources */,
 				AAF56EFC2F4417290062BA2E /* AppDelegate.swift in Sources */,

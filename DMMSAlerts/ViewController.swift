@@ -27,6 +27,8 @@ class ViewController: UIViewController {
     private var isAlertActive = false
     private var alertTimer: Timer?
     private var isPaused = true
+    private var currentMetar: MetarData?
+    private var windComponent: Double = 0.0
     
     // Airport Logic State
     private var lastStationID: String = "N/A"
@@ -52,7 +54,7 @@ class ViewController: UIViewController {
                dmmsThreshold = savedDMMS
            }
            updateDMMSLabel()
-       }	
+       }
     private func setupUI() {
         view.backgroundColor = UIColor.systemBlue
         warningImage.isHidden = true
@@ -90,23 +92,34 @@ class ViewController: UIViewController {
     
     // MARK: - Main Loop (Triggered by Location Updates)
     @objc private func updateUI() {
-        guard !isPaused, let location = locationManager.currentLocation else { return }
-        
-        let speed = locationManager.currentSpeed
-        let alt = locationManager.currentAltitude
-        let head = locationManager.currentHeading
-        
-        // Update Labels
-        speedLabel.text = String(format: "%.0f KTS", speed)
-        altitudeLabel.text = String(format: "%.0f FT", alt)
-        headingLabel.text = String(format: "HDG: %.0f°", head)
-        
-        // --- AIRPORT LOGIC ---
-        checkNearestAirport(location: location, altitudeFt: alt)
-        
-        // --- ALERT LOGIC ---
-        checkAlerts(currentSpeed: speed)
-    }
+       guard !isPaused, let location = locationManager.currentLocation else { return }
+       
+       let groundSpeed = locationManager.currentSpeed
+       let alt = locationManager.currentAltitude
+       let head = locationManager.currentHeading
+       
+       // --- NEW: Calculate Effective Airspeed (IAS) ---
+       // IAS = GroundSpeed + HeadwindComponent
+       // (Headwind is positive, Tailwind is negative)
+       let effectiveAirspeed = max(0, groundSpeed + windComponent)
+       
+       // Update Labels
+       if windComponent != 0 {
+           speedLabel.text = String(format: "IAS: %.0f KTS", effectiveAirspeed)
+           statusLabel.text = "METAR ACTIVE (\(currentMetar?.icaoId ?? "?"))"
+           statusLabel.textColor = .systemGreen
+       } else {
+           speedLabel.text = String(format: "GPS: %.0f KTS", groundSpeed)
+       }
+       
+       altitudeLabel.text = String(format: "%.0f FT", alt)
+       headingLabel.text = String(format: "HDG: %.0f°", head)
+       
+       // Check Logic
+       checkNearestAirport(location: location, altitudeFt: alt)
+       checkAlerts(currentSpeed: effectiveAirspeed) // Use IAS for safety!
+   }
+   
     
     private func checkNearestAirport(location: CLLocation, altitudeFt: Double) {
         guard let result = AirportManager.shared.findNearest(to: location) else { return }
@@ -140,6 +153,21 @@ class ViewController: UIViewController {
             speak(text: speechText)
             print("Announcing new airport: \(speechText)")
         }
+        // --- NEW: METAR FETCH ---
+                // Only fetch if airport changed or data is stale (Manager handles caching)
+                WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] metar in
+                    guard let self = self, let metar = metar else { return }
+                    
+                    DispatchQueue.main.async {
+                        self.currentMetar = metar
+                        // Calculate Wind Component immediately
+                        let heading = self.locationManager.currentHeading
+                        self.windComponent = WeatherManager.shared.calculateWindComponent(heading: heading, metar: metar)
+                        
+                        // Update Debug Label (Optional)
+                        print("Wind Component: \(String(format: "%.1f", self.windComponent)) kts")
+                    }
+                }
     }
     
     private func calculateStallSpeed() {
