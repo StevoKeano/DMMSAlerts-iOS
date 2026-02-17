@@ -80,12 +80,14 @@ class ViewController: UIViewController {
                 let z = data.acceleration.z
                 let totalG = sqrt(x*x + y*y + z*z)
                 
-                // Low-pass filter (simple moving average could be better)
                 self.gForce = totalG
-                
-                // Calculate Stall Speed
                 self.calculateStallSpeed()
             }
+        } else {
+            // Simulator Fallback: Force 1.0 G
+            print("Accelerometer unavailable (Simulator). Defaulting to 1.0 G.")
+            self.gForce = 1.0
+            self.calculateStallSpeed()
         }
     }
     
@@ -110,8 +112,7 @@ class ViewController: UIViewController {
         // LoadFactor is approx G-Force in coordinated flight
         let loadFactor = max(0.1, abs(gForce)) // Avoid sqrt(negative)
         adjustedStallSpeed = dmmsThreshold * sqrt(loadFactor)
-        
-        // Update Label (Optional debugging)
+        print("Speed: \(locationManager.currentSpeed) | DMMS: \(dmmsThreshold) | G: \(gForce) | AdjStall: \(adjustedStallSpeed)")  // Update Label (Optional debugging)
         // print("G: \(gForce), Adj Stall: \(adjustedStallSpeed)")
     }
     
@@ -129,27 +130,58 @@ class ViewController: UIViewController {
     }
     
     private func startAlert() {
+        guard !isAlertActive else { return }
+        
         isAlertActive = true
         warningImage.isHidden = false
         view.backgroundColor = .systemRed // Visual Flash
         
-        // TTS
-        let utterance = AVSpeechUtterance(string: "SPEED CHECK! STALL WARNING!")
+        let text = "SPEED CHECK! STALL WARNING!"
+        
+        // --- BULLETPROOF VOICE SELECTION ---
+        let utterance = AVSpeechUtterance(string: text)
         utterance.rate = 0.5
         utterance.volume = 1.0
+        
+        // Find ANY available English voice, or fallback to the first available voice
+        let englishVoice = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.starts(with: "en") })
+        let anyVoice = AVSpeechSynthesisVoice.speechVoices().first
+        utterance.voice = englishVoice ?? anyVoice
+        
+        if let selectedVoice = utterance.voice {
+            print("Using voice: \(selectedVoice.language) - \(selectedVoice.name)")
+        } else {
+            print("CRITICAL: No TTS voices found on this Simulator. Audio will be silent.")
+        }
+        
+        do {
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Audio Session Error: \(error)")
+        }
+        
         synthesizer.speak(utterance)
         
         // Loop Alert
         alertTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.synthesizer.speak(utterance)
+            guard let self = self else { return }
+            
+            let loopUtterance = AVSpeechUtterance(string: text)
+            loopUtterance.rate = 0.5
+            loopUtterance.volume = 1.0
+            // Re-use the voice we found
+            loopUtterance.voice = englishVoice ?? anyVoice
+            
+            self.synthesizer.speak(loopUtterance)
+            
             // Flash UI
             UIView.animate(withDuration: 0.5, animations: {
-                self?.view.backgroundColor = .systemOrange
-            }) { _ in
+                self.view.backgroundColor = .systemOrange
+            }, completion: { _ in
                 UIView.animate(withDuration: 0.5) {
-                    self?.view.backgroundColor = .systemRed
+                    self.view.backgroundColor = .systemRed
                 }
-            }
+            })
         }
     }
     
@@ -199,8 +231,19 @@ extension ViewController: UIPickerViewDataSource, UIPickerViewDelegate {
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        // 1. Update the Threshold immediately
         dmmsThreshold = Double(row + 1)
         defaults.set(dmmsThreshold, forKey: "DMMSValue")
         updateDMMSLabel()
+        
+        // 2. Recalculate Stall Speed based on new DMMS + Current G-Load
+        calculateStallSpeed()
+        
+        // 3. Check logic immediately (don't wait for next GPS update)
+        // If we are alerting, but the new setting makes us safe, this will STOP the alert.
+        checkAlerts(currentSpeed: locationManager.currentSpeed)
+        
+        print("Picker changed to \(dmmsThreshold). Re-checked alerts.")
     }
+    
 }
