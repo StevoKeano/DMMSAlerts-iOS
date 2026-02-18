@@ -2,6 +2,36 @@ import UIKit
 import CoreLocation
 import CoreMotion
 import AVFoundation
+// MARK: - 10x Configuration Manager
+struct AppConfig {
+    static let defaults = UserDefaults.standard
+    
+    // Keys
+    private static let kDMMS = "DMMSValue"
+    private static let kMsgFreq = "MessageFrequency"
+    private static let kWeatherInterval = "WeatherFetchInterval"
+    private static let kLandingBuffer = "LandingAltitudeBuffer"
+    private static let kLandingDist = "LandingDistanceKm"
+    
+    // Getters with Defaults
+    static var dmmsThreshold: Double {
+        get { defaults.double(forKey: kDMMS) == 0 ? 70.0 : defaults.double(forKey: kDMMS) }
+        set { defaults.set(newValue, forKey: kDMMS) }
+    }
+    
+    static var messageFrequency: TimeInterval {
+        get { defaults.double(forKey: kMsgFreq) == 0 ? 5.0 : defaults.double(forKey: kMsgFreq) } // Default 5s
+        set { defaults.set(newValue, forKey: kMsgFreq) }
+    }
+    
+    static var weatherFetchInterval: TimeInterval {
+        get { defaults.double(forKey: kWeatherInterval) == 0 ? 300.0 : defaults.double(forKey: kWeatherInterval) } // Default 5 min
+        set { defaults.set(newValue, forKey: kWeatherInterval) }
+    }
+    
+    static var landingAltitudeBuffer: Double { return 10.0 } // 10 ft
+    static var landingDistanceKm: Double { return 0.9 } // 0.9 km
+}
 class ViewController: UIViewController {
     // MARK: - Outlets
     @IBOutlet weak var statusLabel: UILabel!
@@ -9,7 +39,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var altitudeLabel: UILabel!
     @IBOutlet weak var headingLabel: UILabel!
     @IBOutlet weak var dmmsValueLabel: UILabel!
-    @IBOutlet weak var airportLabel: UILabel! // New Outlet for Airport Info!
+    @IBOutlet weak var airportLabel: UILabel!
     @IBOutlet weak var dmmsPicker: UIPickerView!
     @IBOutlet weak var warningImage: UIImageView!
     @IBOutlet weak var startButton: UIButton!
@@ -18,43 +48,38 @@ class ViewController: UIViewController {
     private let locationManager = LocationManager.shared
     private let motionManager = CMMotionManager()
     private let synthesizer = AVSpeechSynthesizer()
-    private let defaults = UserDefaults.standard
     
-    // MARK: - State Variables
-    private var dmmsThreshold: Double = 70.0
+    // MARK: - State
     private var gForce: Double = 1.0
     private var adjustedStallSpeed: Double = 0.0
     private var isAlertActive = false
     private var alertTimer: Timer?
     private var isPaused = true
-    private var currentMetar: MetarData?
-    private var windComponent: Double = 0.0
-    private var lastWeatherFetchTime: Date?
-    // Airport Logic State
+    
+    // Airport / Weather State
     private var lastStationID: String = "N/A"
     private var landingModeActive = false
-    private let airportProximityKm = 0.9 // 0.9km threshold for "landing" logic
-    private let landingAltitudeBuffer = 10.0 // 10ft above airport elev
+    private var lastWeatherFetchTime: Date?
+    private var currentMetar: MetarData?
+    private var windComponent: Double = 0.0
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
-           super.viewDidLoad()
-           setupUI()
-           setupPicker()
-           setupMotionManager()
-           
-           // Load airports in background
-           AirportManager.shared.loadAirports { [weak self] in
-               self?.airportLabel.text = "Airports loaded!"
-           }
-           
-           NotificationCenter.default.addObserver(self, selector: #selector(updateUI), name: .didUpdateLocation, object: nil)
-           
-           if let savedDMMS = defaults.value(forKey: "DMMSValue") as? Double {
-               dmmsThreshold = savedDMMS
-           }
-           updateDMMSLabel()
-       }
+        super.viewDidLoad()
+        setupUI()
+        setupPicker()
+        setupMotionManager()
+        
+        // Background Load
+        AirportManager.shared.loadAirports { [weak self] in
+            DispatchQueue.main.async { self?.airportLabel.text = "Airports Loaded. Waiting for GPS..." }
+        }
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(updateUI), name: .didUpdateLocation, object: nil)
+        
+        updateDMMSLabel()
+    }
+    
     private func setupUI() {
         view.backgroundColor = UIColor.systemBlue
         warningImage.isHidden = true
@@ -63,13 +88,13 @@ class ViewController: UIViewController {
         startButton.setTitle("Start Monitoring", for: .normal)
         startButton.backgroundColor = .systemGreen
         startButton.layer.cornerRadius = 10
-        airportLabel.text = "Searching for airports..."
+        airportLabel.text = "Initializing..."
     }
     
     private func setupPicker() {
         dmmsPicker.dataSource = self
         dmmsPicker.delegate = self
-        let defaultRow = Int(dmmsThreshold) - 1
+        let defaultRow = Int(AppConfig.dmmsThreshold) - 1
         if defaultRow >= 0 && defaultRow < 270 {
             dmmsPicker.selectRow(defaultRow, inComponent: 0, animated: false)
         }
@@ -84,43 +109,39 @@ class ViewController: UIViewController {
                 self.calculateStallSpeed()
             }
         } else {
-            print("Accelerometer unavailable (Simulator). Defaulting to 1.0 G.")
+            // Simulator Fallback
             self.gForce = 1.0
             self.calculateStallSpeed()
         }
     }
     
-    // MARK: - Main Loop (Triggered by Location Updates)
+    // MARK: - Main Loop
     @objc private func updateUI() {
-       guard !isPaused, let location = locationManager.currentLocation else { return }
-       
-       let groundSpeed = locationManager.currentSpeed
-       let alt = locationManager.currentAltitude
-       let head = locationManager.currentHeading
-       
-       // --- NEW: Calculate Effective Airspeed (IAS) ---
-       // IAS = GroundSpeed + HeadwindComponent
-       // (Headwind is positive, Tailwind is negative)
-       let effectiveAirspeed = max(0, groundSpeed + windComponent)
-       
-       // Update Labels
-       if windComponent != 0 {
-           speedLabel.text = String(format: "IAS: %.0f KTS", effectiveAirspeed)
-           statusLabel.text = "METAR ACTIVE (\(currentMetar?.icaoId ?? "?"))"
-           statusLabel.textColor = .systemGreen
-       } else {
-           speedLabel.text = String(format: "GPS: %.0f KTS", groundSpeed)
-       }
-       
-       altitudeLabel.text = String(format: "%.0f FT", alt)
-       headingLabel.text = String(format: "HDG: %.0f°", head)
-       
-       // Check Logic
-       checkNearestAirport(location: location, altitudeFt: alt)
-       checkAlerts(currentSpeed: effectiveAirspeed) // Use IAS for safety!
-   }
-   
-    
+        guard !isPaused, let location = locationManager.currentLocation else { return }
+        
+        let groundSpeed = locationManager.currentSpeed
+        let alt = locationManager.currentAltitude
+        let head = locationManager.currentHeading
+        
+        // Calculate Effective Airspeed (IAS)
+        let effectiveAirspeed = max(0, groundSpeed + windComponent)
+        
+        // Update Labels
+        if windComponent != 0 {
+            speedLabel.text = String(format: "IAS: %.0f KTS", effectiveAirspeed)
+            statusLabel.text = "METAR ACTIVE (\(currentMetar?.icaoId ?? "?"))"
+            statusLabel.textColor = .systemGreen
+        } else {
+            speedLabel.text = String(format: "GPS: %.0f KTS", groundSpeed)
+        }
+        
+        altitudeLabel.text = String(format: "%.0f FT", alt)
+        headingLabel.text = String(format: "HDG: %.0f°", head)
+        
+        // Check Logic
+        checkNearestAirport(location: location, altitudeFt: alt)
+        checkAlerts(currentSpeed: effectiveAirspeed)
+    }
     
     private func checkNearestAirport(location: CLLocation, altitudeFt: Double) {
         guard let result = AirportManager.shared.findNearest(to: location) else { return }
@@ -134,14 +155,17 @@ class ViewController: UIViewController {
         
         // Landing Logic
         let altitudeDiff = altitudeFt - airport.elevation
-        if distKm <= airportProximityKm && altitudeDiff < landingAltitudeBuffer {
+        if distKm <= AppConfig.landingDistanceKm && altitudeDiff < AppConfig.landingAltitudeBuffer {
             landingModeActive = true
             statusLabel.text = "LANDING MODE"
             statusLabel.textColor = .systemYellow
         } else {
             landingModeActive = false
-            statusLabel.text = "MONITORING"
-            statusLabel.textColor = .white
+            // Only reset status text if not showing METAR status
+            if windComponent == 0 {
+                statusLabel.text = "MONITORING"
+                statusLabel.textColor = .white
+            }
         }
         
         // TTS Logic
@@ -150,57 +174,65 @@ class ViewController: UIViewController {
             let speechText = String(format: "%@, %.0f miles", airport.id, distMiles)
             speak(text: speechText)
             
-            // Force fetch immediately if airport changes
+            // New Airport -> Fetch Immediately
             performWeatherFetch(for: airport, location: location)
         } else {
-            // Airport hasn't changed. Only fetch if 5 minutes have passed (Throttle)
-            let timeSince = lastWeatherFetchTime?.timeIntervalSinceNow ?? -999
-            if timeSince < -3 { // -300 seconds = 5 minutes ago
+            // Same Airport -> Throttle Fetch
+            let timeSince = lastWeatherFetchTime?.timeIntervalSinceNow ?? -99999
+            // Configurable Interval (e.g. 300s)
+            if timeSince < -AppConfig.weatherFetchInterval {
                 performWeatherFetch(for: airport, location: location)
             }
         }
     }
     
+
     private func performWeatherFetch(for airport: Airport, location: CLLocation) {
-        lastWeatherFetchTime = Date() // Reset Timer
+        lastWeatherFetchTime = Date()
+        print("Fetching Weather for \(airport.id)...")
         
         WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] metar in
-            if let metar = metar {
+            // 10x FIX: Only accept the METAR if it actually has Wind Data (Speed & Direction)
+            if let metar = metar, let _ = metar.wdir, let _ = metar.wspd {
                 self?.updateMetarUI(metar)
             } else {
-                print("No METAR for \(airport.id). Searching BBox...")
+                // If primary failed OR returned empty data (Zombie METAR), try BBox
+                print("Primary METAR (\(airport.id)) missing wind data. Searching BBox...")
+                
                 WeatherManager.shared.fetchMetarByBox(location: location) { boxMetar in
-                    if let boxMetar = boxMetar {
+                    if let boxMetar = boxMetar, let id = boxMetar.icaoId {
+                        print("BBox Rescue: Found \(id)")
                         self?.updateMetarUI(boxMetar)
+                    } else {
+                        print("BBox failed too. No weather available.")
                     }
                 }
             }
         }
     }
-
+    
     private func updateMetarUI(_ metar: MetarData) {
         DispatchQueue.main.async {
             self.currentMetar = metar
             let heading = self.locationManager.currentHeading
             self.windComponent = WeatherManager.shared.calculateWindComponent(heading: heading, metar: metar)
             
-            self.statusLabel.text = "METAR ACTIVE (\(metar.icaoId ?? "?"))"
-            self.statusLabel.textColor = .systemGreen
+            // NO updateUI() call here. Prevents Infinite Loop.
+            print("Weather Updated: \(metar.icaoId ?? "?") | Wind Comp: \(self.windComponent)")
         }
     }
+    
     private func calculateStallSpeed() {
         let loadFactor = max(0.1, abs(gForce))
-        adjustedStallSpeed = dmmsThreshold * sqrt(loadFactor)
+        adjustedStallSpeed = AppConfig.dmmsThreshold * sqrt(loadFactor)
     }
     
     private func checkAlerts(currentSpeed: Double) {
-        // Suppress alerts if in Landing Mode
         if landingModeActive {
             if isAlertActive { stopAlert() }
             return
         }
         
-        // Trigger Logic
         if currentSpeed < adjustedStallSpeed {
             if !isAlertActive { startAlert() }
         } else {
@@ -217,9 +249,9 @@ class ViewController: UIViewController {
         let text = "SPEED CHECK! STALL WARNING!"
         speak(text: text)
         
-        alertTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+        // Loop Alert (Configurable Frequency)
+        alertTimer = Timer.scheduledTimer(withTimeInterval: AppConfig.messageFrequency, repeats: true) { [weak self] _ in
             self?.speak(text: text)
-            // Flash UI
             UIView.animate(withDuration: 0.5, animations: {
                 self?.view.backgroundColor = .systemOrange
             }) { _ in
@@ -239,13 +271,10 @@ class ViewController: UIViewController {
         synthesizer.stopSpeaking(at: .immediate)
     }
     
-    // Helper for TTS
     private func speak(text: String) {
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = 0.5
         utterance.volume = 1.0
-        
-        // Simulator Fallback Logic
         let englishVoice = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.starts(with: "en") })
         let anyVoice = AVSpeechSynthesisVoice.speechVoices().first
         utterance.voice = englishVoice ?? anyVoice
@@ -260,6 +289,7 @@ class ViewController: UIViewController {
         if isPaused {
             locationManager.stopMonitoring()
             statusLabel.text = "PAUSED"
+            statusLabel.textColor = .white
             startButton.setTitle("Resume", for: .normal)
             startButton.backgroundColor = .systemGray
             stopAlert()
@@ -272,20 +302,19 @@ class ViewController: UIViewController {
     }
     
     private func updateDMMSLabel() {
-        dmmsValueLabel.text = "DMMS: \(Int(dmmsThreshold)) KTS"
+        dmmsValueLabel.text = "DMMS: \(Int(AppConfig.dmmsThreshold)) KTS"
     }
 }
-// Picker Delegate
+// MARK: - Picker Delegate
 extension ViewController: UIPickerViewDataSource, UIPickerViewDelegate {
     func numberOfComponents(in pickerView: UIPickerView) -> Int { return 1 }
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int { return 270 }
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? { return "\(row + 1) KTS" }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        dmmsThreshold = Double(row + 1)
-        defaults.set(dmmsThreshold, forKey: "DMMSValue")
+        AppConfig.dmmsThreshold = Double(row + 1) // Saves to UserDefaults
         updateDMMSLabel()
         calculateStallSpeed()
-        checkAlerts(currentSpeed: locationManager.currentSpeed) // Instant update
+        checkAlerts(currentSpeed: locationManager.currentSpeed)
     }
 }
