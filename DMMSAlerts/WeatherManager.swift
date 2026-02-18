@@ -5,7 +5,7 @@ struct MetarData: Codable {
     let wdir: Int? // Wind Direction
     let wspd: Int? // Wind Speed
     let wgst: Int? // Gust
-    let lat: Double? // For distance calculation
+    let lat: Double?
     let lon: Double?
 }
 class WeatherManager {
@@ -19,7 +19,6 @@ class WeatherManager {
     
     // MARK: - Public API
     
-    // 1. Try ID
     func fetchMetar(for airportID: String, completion: @escaping (MetarData?) -> Void) {
         if isCacheValid(for: airportID) { completion(cachedMetar); return }
         
@@ -27,19 +26,20 @@ class WeatherManager {
         performRequest(urlString: urlString, completion: completion)
     }
     
-    // 2. Try Bounding Box (Fallback)
     func fetchMetarByBox(location: CLLocation, completion: @escaping (MetarData?) -> Void) {
-        // Create a ~0.5 degree box (approx 30 miles) around the location
+        // Expand to 1.0 degree (~69 miles) to guarantee a hit
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
-        let delta = 0.5
-        // bbox=minLat,minLon,maxLat,maxLon
-        let urlString = "https://aviationweather.gov/api/data/metar?bbox=\(lat-delta),\(lon-delta),\(lat+delta),\(lon+delta)&format=json"
+        let delta = 1.0
+        
+        // Standard BBOX order: minLon, minLat, maxLon, maxLat
+        let urlString = "https://aviationweather.gov/api/data/metar?bbox=\(lon-delta),\(lat-delta),\(lon+delta),\(lat+delta)&format=json"
+        
+        print("DEBUG: Fetching BBox URL: \(urlString)")
         
         performRequest(urlString: urlString) { [weak self] metar in
-            // If BBox returns a station, cache it so we don't spam the API
             if let metar = metar, let id = metar.icaoId {
-                print("BBox found nearby station: \(id)")
+                print("BBox found valid station: \(id) (Wind: \(metar.wspd ?? 0)kts)")
                 self?.cache(metar)
             }
             completion(metar)
@@ -65,29 +65,41 @@ class WeatherManager {
         
         session.dataTask(with: url) { [weak self] data, response, error in
             guard let data = data, error == nil else {
-                print("Weather Fetch Error: \(error?.localizedDescription ?? "Unknown")")
+                print("Weather Network Error: \(error?.localizedDescription ?? "Unknown")")
                 completion(nil)
                 return
             }
             
             let decoder = JSONDecoder()
             
-            // Attempt 1: Decode Array
-            if let list = try? decoder.decode([MetarData].self, from: data), let first = list.first {
-                self?.cache(first)
-                completion(first)
-                return
+            // Attempt 1: Decode Array (Standard for BBox)
+            if let list = try? decoder.decode([MetarData].self, from: data) {
+                // 10x LOGIC: Don't just take the first one. Find the first one with VALID WIND.
+                if let validStation = list.first(where: { $0.wspd != nil && $0.wdir != nil }) {
+                    self?.cache(validStation)
+                    completion(validStation)
+                    return
+                }
             }
             
-            // Attempt 2: Decode Single Object
+            // Attempt 2: Decode Single Object (Standard for single ID)
             if let single = try? decoder.decode(MetarData.self, from: data) {
-                self?.cache(single)
-                completion(single)
-                return
+                if single.wspd != nil {
+                    self?.cache(single)
+                    completion(single)
+                    return
+                }
             }
             
-            // Failure
+            // Debugging: If we failed, what did we get?
+            let rawString = String(data: data, encoding: .utf8) ?? "Unreadable"
+            if rawString == "[]" {
+                print("API returned empty list (No stations in box).")
+            } else {
+                print("Parse Failed. Raw Response: \(rawString.prefix(100))...")
+            }
             completion(nil)
+            
         }.resume()
     }
     
@@ -105,4 +117,3 @@ class WeatherManager {
         self.lastFetchTime = Date()
     }
 }
-	
