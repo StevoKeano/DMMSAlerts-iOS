@@ -29,7 +29,7 @@ class ViewController: UIViewController {
     private var isPaused = true
     private var currentMetar: MetarData?
     private var windComponent: Double = 0.0
-    
+    private var lastWeatherFetchTime: Date?
     // Airport Logic State
     private var lastStationID: String = "N/A"
     private var landingModeActive = false
@@ -121,6 +121,7 @@ class ViewController: UIViewController {
    }
    
     
+    
     private func checkNearestAirport(location: CLLocation, altitudeFt: Double) {
         guard let result = AirportManager.shared.findNearest(to: location) else { return }
         
@@ -128,15 +129,14 @@ class ViewController: UIViewController {
         let distKm = result.distance
         let distMiles = distKm * 0.621371
         
-        // Update Label
         airportLabel.text = String(format: "Closest: %@, %.0f mi %.0f° %.0f ft",
                                    airport.id, distMiles, result.bearing, airport.elevation)
         
-        // 1. Landing Mode Logic (Disable Alerts near runway)
+        // Landing Logic
         let altitudeDiff = altitudeFt - airport.elevation
         if distKm <= airportProximityKm && altitudeDiff < landingAltitudeBuffer {
             landingModeActive = true
-            statusLabel.text = "LANDING MODE (Alerts Disabled)"
+            statusLabel.text = "LANDING MODE"
             statusLabel.textColor = .systemYellow
         } else {
             landingModeActive = false
@@ -144,32 +144,50 @@ class ViewController: UIViewController {
             statusLabel.textColor = .white
         }
         
-        // 2. TTS Announcement Logic (New Airport Found)
+        // TTS Logic
         if airport.id != lastStationID {
             lastStationID = airport.id
-            // Announce new airport
-            let speechText = String(format: "%@, %.0f miles bearing %.0f degrees %.0f feet",
-                                    airport.id, distMiles, result.bearing, airport.elevation)
+            let speechText = String(format: "%@, %.0f miles", airport.id, distMiles)
             speak(text: speechText)
-            print("Announcing new airport: \(speechText)")
+            
+            // Force fetch immediately if airport changes
+            performWeatherFetch(for: airport, location: location)
+        } else {
+            // Airport hasn't changed. Only fetch if 5 minutes have passed (Throttle)
+            let timeSince = lastWeatherFetchTime?.timeIntervalSinceNow ?? -999
+            if timeSince < -3 { // -300 seconds = 5 minutes ago
+                performWeatherFetch(for: airport, location: location)
+            }
         }
-        // --- NEW: METAR FETCH ---
-                // Only fetch if airport changed or data is stale (Manager handles caching)
-                WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] metar in
-                    guard let self = self, let metar = metar else { return }
-                    
-                    DispatchQueue.main.async {
-                        self.currentMetar = metar
-                        // Calculate Wind Component immediately
-                        let heading = self.locationManager.currentHeading
-                        self.windComponent = WeatherManager.shared.calculateWindComponent(heading: heading, metar: metar)
-                        
-                        // Update Debug Label (Optional)
-                        print("Wind Component: \(String(format: "%.1f", self.windComponent)) kts")
-                    }
-                }
     }
     
+    private func performWeatherFetch(for airport: Airport, location: CLLocation) {
+        lastWeatherFetchTime = Date() // Reset Timer
+        
+        WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] metar in
+            if let metar = metar {
+                self?.updateMetarUI(metar)
+            } else {
+                print("No METAR for \(airport.id). Searching BBox...")
+                WeatherManager.shared.fetchMetarByBox(location: location) { boxMetar in
+                    if let boxMetar = boxMetar {
+                        self?.updateMetarUI(boxMetar)
+                    }
+                }
+            }
+        }
+    }
+
+    private func updateMetarUI(_ metar: MetarData) {
+        DispatchQueue.main.async {
+            self.currentMetar = metar
+            let heading = self.locationManager.currentHeading
+            self.windComponent = WeatherManager.shared.calculateWindComponent(heading: heading, metar: metar)
+            
+            self.statusLabel.text = "METAR ACTIVE (\(metar.icaoId ?? "?"))"
+            self.statusLabel.textColor = .systemGreen
+        }
+    }
     private func calculateStallSpeed() {
         let loadFactor = max(0.1, abs(gForce))
         adjustedStallSpeed = dmmsThreshold * sqrt(loadFactor)
