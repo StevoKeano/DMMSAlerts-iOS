@@ -90,6 +90,12 @@ class ViewController: UIViewController {
     private var lastWeatherFetchTime: Date?
     private var currentMetar: MetarData?
     private var windComponent: Double = 0.0
+    private var bearingToAirport: Double = 0.0
+    
+    // Compass
+    private var compassView: UIView!
+    private var compassPointer: UIView!
+    private var compassLabel: UILabel!
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -155,6 +161,114 @@ class ViewController: UIViewController {
         startButton.backgroundColor = .systemGreen
         startButton.layer.cornerRadius = 10
         airportLabel.text = "Initializing..."
+        
+        // Setup compass view
+        setupCompass()
+    }
+    
+    private func setupCompass() {
+        // Compass container
+        compassView = UIView()
+        compassView.translatesAutoresizingMaskIntoConstraints = false
+        compassView.backgroundColor = .clear
+        view.addSubview(compassView)
+        
+        // Compass background circle - white border for visibility
+        let compassBg = UIView()
+        compassBg.translatesAutoresizingMaskIntoConstraints = false
+        compassBg.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        compassBg.layer.cornerRadius = 30
+        compassBg.layer.borderWidth = 2
+        compassBg.layer.borderColor = UIColor.white.cgColor
+        compassView.addSubview(compassBg)
+        
+        // Compass pointer - single triangle pointing to airport, center at compass center
+        compassPointer = UIView()
+        compassPointer.translatesAutoresizingMaskIntoConstraints = false
+        compassPointer.frame = CGRect(x: 0, y: 0, width: 20, height: 25)  // Exact size of triangle
+        compassView.addSubview(compassPointer)
+        
+        // Make triangle pointing UP - white, base at center of compass
+        let pointerLayer = CAShapeLayer()
+        pointerLayer.fillColor = UIColor.white.cgColor
+        let path = UIBezierPath()
+        // Tip (at top, local y = -25, will point to airport)
+        path.move(to: CGPoint(x: 0, y: -25))
+        // Base left (at center, local y = 0)
+        path.addLine(to: CGPoint(x: -10, y: 0))
+        // Base right (at center, local y = 0)
+        path.addLine(to: CGPoint(x: 10, y: 0))
+        path.close()
+        pointerLayer.path = path.cgPath
+        compassPointer.layer.addSublayer(pointerLayer)
+        
+        // "N" label at top
+        let nLabel = UILabel()
+        nLabel.translatesAutoresizingMaskIntoConstraints = false
+        nLabel.text = "N"
+        nLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        nLabel.textColor = .white
+        compassView.addSubview(nLabel)
+        
+        // Label below compass showing airport and heading
+        compassLabel = UILabel()
+        compassLabel.translatesAutoresizingMaskIntoConstraints = false
+        compassLabel.text = ""
+        compassLabel.font = .systemFont(ofSize: 17, weight: .medium)
+        compassLabel.textColor = .white
+        compassLabel.textAlignment = .center
+        compassLabel.numberOfLines = 2
+        view.addSubview(compassLabel)
+        
+        NSLayoutConstraint.activate([
+            compassView.widthAnchor.constraint(equalToConstant: 60),
+            compassView.heightAnchor.constraint(equalToConstant: 60),
+            compassView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            compassView.topAnchor.constraint(equalTo: airportLabel.topAnchor, constant: -10),
+            
+            compassBg.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
+            compassBg.centerYAnchor.constraint(equalTo: compassView.centerYAnchor),
+            compassBg.widthAnchor.constraint(equalToConstant: 60),
+            compassBg.heightAnchor.constraint(equalToConstant: 60),
+            
+            compassPointer.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
+            compassPointer.topAnchor.constraint(equalTo: compassView.centerYAnchor),
+            
+            nLabel.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
+            nLabel.topAnchor.constraint(equalTo: compassView.topAnchor, constant: 4),
+            
+            compassLabel.topAnchor.constraint(equalTo: compassView.bottomAnchor, constant: 4),
+            compassLabel.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
+            compassLabel.widthAnchor.constraint(equalToConstant: 120)
+        ])
+    }
+    
+    private func updateCompass(airportBearing: Double, airportId: String) {
+        let currentHeading = locationManager.currentHeading
+        // Pointer rotation: airport bearing minus current heading (so pointer points to airport relative to forward)
+        let rotation = (airportBearing - currentHeading) * .pi / 180
+        
+        UIView.animate(withDuration: 0.3) {
+            self.compassPointer.transform = CGAffineTransform(rotationAngle: CGFloat(rotation))
+        }
+        
+        // Calculate shortest turn direction and degrees
+        var diff = airportBearing - currentHeading
+        if diff > 180 { diff -= 360 }
+        if diff < -180 { diff += 360 }
+        
+        let turnDirection: String
+        let turnDegrees: Int
+        if diff >= 0 {
+            turnDirection = "R"
+            turnDegrees = Int(diff.rounded())
+        } else {
+            turnDirection = "L"
+            turnDegrees = Int((-diff).rounded())
+        }
+        
+        let headingToAirport = Int(airportBearing.rounded())
+        compassLabel.text = "\(airportId)\n\(turnDirection) \(turnDegrees)° to \(headingToAirport)°"
     }
     
     private func setupPicker() {
@@ -219,6 +333,10 @@ class ViewController: UIViewController {
         
         airportLabel.text = String(format: "Closest: %@, %.0f mi %.0f° %.0f ft",
                                    airport.id, distMiles, result.bearing, airport.elevation)
+        
+        // Update compass to point to airport
+        bearingToAirport = result.bearing
+        updateCompass(airportBearing: result.bearing, airportId: airport.id)
         
         // Landing Logic
         let altitudeDiff = altitudeFt - airport.elevation

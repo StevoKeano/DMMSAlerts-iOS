@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "201"
             endingLineNumber = "201"
-            landmarkName = "checkNearestAirport(location:altitudeFt:)"
+            landmarkName = "setupCompass()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -48,7 +48,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "196"
             endingLineNumber = "196"
-            landmarkName = "updateUI()"
+            landmarkName = "setupCompass()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
