@@ -223,8 +223,8 @@ class ViewController: UIViewController {
         NSLayoutConstraint.activate([
             compassView.widthAnchor.constraint(equalToConstant: 70),
             compassView.heightAnchor.constraint(equalToConstant: 60),
-            compassView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-            compassView.topAnchor.constraint(equalTo: airportLabel.topAnchor, constant: -5),
+            compassView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            compassView.centerYAnchor.constraint(equalTo: airportLabel.centerYAnchor),
             
             compassBg.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
             compassBg.centerYAnchor.constraint(equalTo: compassView.centerYAnchor),
@@ -239,7 +239,6 @@ class ViewController: UIViewController {
             
             compassLabel.topAnchor.constraint(equalTo: compassView.bottomAnchor, constant: 4),
             compassLabel.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
-            compassLabel.widthAnchor.constraint(equalToConstant: 120)
         ])
     }
     
