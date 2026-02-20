@@ -1,14 +1,17 @@
 import Foundation
 import CoreLocation
 import UIKit
-// Notification to update UI
+
 extension Notification.Name {
     static let didUpdateLocation = Notification.Name("didUpdateLocation")
 }
+
 class LocationManager: NSObject, CLLocationManagerDelegate {
     static let shared = LocationManager()
     
     private let locationManager = CLLocationManager()
+    private var lastLocation: CLLocation?
+    private var lastTimestamp: Date?
     
     // Published data
     var currentLocation: CLLocation?
@@ -22,10 +25,9 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        locationManager.distanceFilter = kCLDistanceFilterNone // Update on every move
+        locationManager.distanceFilter = kCLDistanceFilterNone
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.pausesLocationUpdatesAutomatically = false
-        locationManager.activityType = .airborne // Critical for flight tracking
     }
     
     func requestPermissions() {
@@ -33,6 +35,11 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     }
     
     func startMonitoring() {
+        if AppConfig.groundMode {
+            locationManager.activityType = .other
+        } else {
+            locationManager.activityType = .airborne
+        }
         locationManager.startUpdatingLocation()
         locationManager.startUpdatingHeading()
         isMonitoring = true
@@ -50,15 +57,26 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         
         currentLocation = location
+        currentAltitude = location.altitude * 3.28084 // meters to feet
         
-        // Convert m/s to knots (1 m/s = 1.94384 knots)
-        let speedInKnots = max(0, location.speed * 1.94384)
-        currentSpeed = speedInKnots
+        if AppConfig.groundMode {
+            // Ground mode: calculate speed from position deltas
+            if let lastLoc = lastLocation, let lastTime = lastTimestamp {
+                let distance = location.distance(from: lastLoc) // meters
+                let timeInterval = location.timestamp.timeIntervalSince(lastTime)
+                if timeInterval > 0 {
+                    let speedMps = distance / timeInterval
+                    currentSpeed = max(0, speedMps * 1.94384) // m/s to knots
+                }
+            }
+            lastLocation = location
+            lastTimestamp = location.timestamp
+        } else {
+            // Aviation mode: use GPS speed directly
+            let speedInKnots = max(0, location.speed * 1.94384)
+            currentSpeed = speedInKnots
+        }
         
-        // Convert meters to feet (1 m = 3.28084 ft)
-        currentAltitude = location.altitude * 3.28084
-        
-        // Notify UI and Logic
         NotificationCenter.default.post(name: .didUpdateLocation, object: nil)
     }
     

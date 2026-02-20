@@ -47,8 +47,13 @@ struct AppConfig {
         set { defaults.set(newValue, forKey: kAutoStart) }
     }
     
+    static var groundMode: Bool {
+        get { defaults.object(forKey: "GroundMode") == nil ? false : defaults.bool(forKey: "GroundMode") }
+        set { defaults.set(newValue, forKey: "GroundMode") }
+    }
+    
     static var alertMessage: String {
-        get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK! STALL WARNING!" }
+        get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK You are going to FALL OUT OF THE SKY LIKE A PIANO !!!AHHHHhhhhhh....!" }
         set { defaults.set(newValue, forKey: kAlertMessage) }
     }
     
@@ -88,6 +93,9 @@ class ViewController: UIViewController {
     private var lastStationID: String = "N/A"
     private var landingModeActive = false
     private var lastWeatherFetchTime: Date?
+    private var announced700ft = false
+    private var announced500ft = false
+    private var announced100ft = false
     private var currentMetar: MetarData?
     private var windComponent: Double = 0.0
     private var bearingToAirport: Double = 0.0
@@ -141,7 +149,7 @@ class ViewController: UIViewController {
     // Add this function to handle the click
     @objc func openOptions() {
         // Instantiate the OptionsVC manually since we aren't using a segue
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let storyboard = UIStoryboard(name: "me", bundle: nil)
         
         // NOTE: You must go to Storyboard -> Click Options Screen -> Identity Inspector -> Set Storyboard ID to "OptionsVC"
         if let optionsVC = storyboard.instantiateViewController(withIdentifier: "OptionsVC") as? OptionsViewController {
@@ -345,6 +353,12 @@ class ViewController: UIViewController {
             statusLabel.textColor = .systemYellow
         } else {
             landingModeActive = false
+            // Reset traffic pattern callouts when not on final approach
+            if altitudeDiff > 800 {
+                announced700ft = false
+                announced500ft = false
+                announced100ft = false
+            }
             // Only reset status text if not showing METAR status
             if windComponent == 0 {
                 statusLabel.text = "MONITORING"
@@ -352,9 +366,27 @@ class ViewController: UIViewController {
             }
         }
         
+        // Traffic Pattern Callouts (within 3 miles and Airport Callouts enabled)
+        let distMiles = distKm * 0.621371
+        if distMiles <= 3.0 && AppConfig.airportCallOuts {
+            if altitudeDiff <= 700 && altitudeDiff > 600 && !announced700ft {
+                speak(text: "Traffic pattern, 700 feet")
+                announced700ft = true
+            } else if altitudeDiff <= 500 && altitudeDiff > 400 && !announced500ft {
+                speak(text: "Traffic pattern, 500 feet")
+                announced500ft = true
+            } else if altitudeDiff <= 100 && altitudeDiff > 50 && !announced100ft {
+                speak(text: "Traffic pattern, 100 feet")
+                announced100ft = true
+            }
+        }
+        
         // TTS Logic
         if airport.id != lastStationID {
             lastStationID = airport.id
+            announced700ft = false
+            announced500ft = false
+            announced100ft = false
             let speechText = String(format: "%@, %.0f miles", airport.id, distMiles)
             speak(text: speechText)
             

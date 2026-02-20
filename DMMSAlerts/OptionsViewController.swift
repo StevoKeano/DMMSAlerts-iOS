@@ -21,6 +21,7 @@ class OptionsViewController: UIViewController {
     private var calloutsSwitch: UISwitch!
     private var skullSwitch: UISwitch!
     private var autoStartSwitch: UISwitch!
+    private var groundModeSwitch: UISwitch!
     private var saveButton: UIButton!
     
     private var frequencyLabel: UILabel!
@@ -161,6 +162,25 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = autoStartLabel.bottomAnchor
         
+        // Ground Mode
+        let groundModeLabel = createLabel(text: "Ground/Car Mode")
+        contentView.addSubview(groundModeLabel)
+        NSLayoutConstraint.activate([
+            groundModeLabel.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            groundModeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            groundModeLabel.heightAnchor.constraint(equalToConstant: labelHeight)
+        ])
+        
+        groundModeSwitch = UISwitch()
+        groundModeSwitch.translatesAutoresizingMaskIntoConstraints = false
+        groundModeSwitch.addTarget(self, action: #selector(groundModeChanged(_:)), for: .valueChanged)
+        contentView.addSubview(groundModeSwitch)
+        NSLayoutConstraint.activate([
+            groundModeSwitch.centerYAnchor.constraint(equalTo: groundModeLabel.centerYAnchor),
+            groundModeSwitch.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding)
+        ])
+        previousAnchor = groundModeLabel.bottomAnchor
+        
         // App Title
         titleLabel = createLabel(text: "App Title:")
         contentView.addSubview(titleLabel)
@@ -189,7 +209,7 @@ class OptionsViewController: UIViewController {
             messageLabel.heightAnchor.constraint(equalToConstant: labelHeight)
         ])
         
-        messageField = createTextField(placeholder: "SPEED CHECK! STALL WARNING!")
+        messageField = createTextField(placeholder: "SPEED CHECK! You are going to FALL OUT OF THE SKY LIKE A PIANO !!!AHHHHhhhhhh....")
         contentView.addSubview(messageField)
         NSLayoutConstraint.activate([
             messageField.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 4),
@@ -243,6 +263,7 @@ class OptionsViewController: UIViewController {
         calloutsSwitch.isOn = AppConfig.airportCallOuts
         skullSwitch.isOn = AppConfig.showSkull
         autoStartSwitch.isOn = AppConfig.autoStart
+        groundModeSwitch.isOn = AppConfig.groundMode
         
         messageField.text = AppConfig.alertMessage
         titleField.text = AppConfig.appTitle
@@ -264,6 +285,7 @@ class OptionsViewController: UIViewController {
         AppConfig.airportCallOuts = calloutsSwitch.isOn
         AppConfig.showSkull = skullSwitch.isOn
         AppConfig.autoStart = autoStartSwitch.isOn
+        AppConfig.groundMode = groundModeSwitch.isOn
         
         if let message = messageField.text, !message.isEmpty {
             AppConfig.alertMessage = message
@@ -274,6 +296,10 @@ class OptionsViewController: UIViewController {
         }
         
         navigationController?.popViewController(animated: true)
+    }
+    
+    @objc private func groundModeChanged(_ sender: UISwitch) {
+        AppConfig.groundMode = sender.isOn
     }
     
     private func showAlert(message: String) {
