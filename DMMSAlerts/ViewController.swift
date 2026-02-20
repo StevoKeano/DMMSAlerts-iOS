@@ -110,8 +110,18 @@ class ViewController: UIViewController {
         // Set title
         self.title = AppConfig.appTitle
         
-        // Style navigation bar
+        // Style navigation bar - white text on blue
         navigationController?.navigationBar.tintColor = .white
+        navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationController?.navigationBar.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationController?.navigationBar.barStyle = .black
+        
+        // Add Options button if not already there
+        if navigationItem.rightBarButtonItem == nil {
+            let optionsBtn = UIBarButtonItem(title: "Options", style: .plain, target: self, action: #selector(openOptions))
+            optionsBtn.tintColor = .white
+            navigationItem.rightBarButtonItem = optionsBtn
+        }
         
         // Auto-start if enabled
         if AppConfig.autoStart {

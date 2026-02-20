@@ -9,44 +9,44 @@ import UIKit
 
 class OptionsViewController: UIViewController {
     
-    // MARK: - Outlets (storyboard elements)
-    @IBOutlet weak var frequencyField: UITextField!
-    @IBOutlet weak var messageField: UITextField!
-    @IBOutlet weak var titleField: UITextField!
-    @IBOutlet weak var calloutsSwitch: UISwitch!
-    @IBOutlet weak var skullSwitch: UISwitch!
-    @IBOutlet weak var autoStartSwitch: UISwitch!
-    @IBOutlet weak var saveButton: UIButton!
+    // Programmatic UI elements
+    private var scrollView: UIScrollView!
+    private var contentView: UIView!
     
-    // Programmatic elements
+    private var frequencyField: UITextField!
     private var weatherIntervalField: UITextField!
+    private var messageField: UITextField!
+    private var titleField: UITextField!
+    
+    private var calloutsSwitch: UISwitch!
+    private var skullSwitch: UISwitch!
+    private var autoStartSwitch: UISwitch!
+    private var saveButton: UIButton!
+    
     private var frequencyLabel: UILabel!
+    private var weatherIntervalLabel: UILabel!
     private var messageLabel: UILabel!
     private var titleLabel: UILabel!
     private var calloutsLabel: UILabel!
     private var skullLabel: UILabel!
     private var autoStartLabel: UILabel!
-    private var weatherIntervalLabel: UILabel!
-    
-    private var scrollView: UIScrollView!
-    private var contentView: UIView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Always use programmatic UI for now
-        setupUIManually()
+        setupUI()
         loadSettings()
     }
     
-    private func setupUIManually() {
+    private func setupUI() {
         view.backgroundColor = .systemBackground
         title = "Options"
         
+        // ScrollView
         scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
         
+        // ContentView
         contentView = UIView()
         contentView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentView)
@@ -64,10 +64,10 @@ class OptionsViewController: UIViewController {
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
         ])
         
-        var previousAnchor: NSLayoutYAxisAnchor = contentView.topAnchor
         let padding: CGFloat = 16
         let fieldHeight: CGFloat = 44
-        let labelHeight: CGFloat = 20
+        let labelHeight: CGFloat = 24
+        var previousAnchor: NSLayoutYAxisAnchor = contentView.topAnchor
         
         // Frequency
         frequencyLabel = createLabel(text: "Alert Frequency (sec):")
@@ -125,7 +125,7 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = calloutsLabel.bottomAnchor
         
-        // Show Skull
+        // Skull
         skullLabel = createLabel(text: "Show Warning Icon")
         contentView.addSubview(skullLabel)
         NSLayoutConstraint.activate([
@@ -161,7 +161,7 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = autoStartLabel.bottomAnchor
         
-        // Title
+        // App Title
         titleLabel = createLabel(text: "App Title:")
         contentView.addSubview(titleLabel)
         NSLayoutConstraint.activate([
@@ -180,7 +180,7 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = titleField.bottomAnchor
         
-        // Message
+        // Alert Message
         messageLabel = createLabel(text: "Alert Message:")
         contentView.addSubview(messageLabel)
         NSLayoutConstraint.activate([
@@ -206,7 +206,7 @@ class OptionsViewController: UIViewController {
         saveButton.setTitleColor(.white, for: .normal)
         saveButton.backgroundColor = .systemBlue
         saveButton.layer.cornerRadius = 10
-        saveButton.addTarget(self, action: #selector(saveTapped(_:)), for: .touchUpInside)
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         contentView.addSubview(saveButton)
         NSLayoutConstraint.activate([
             saveButton.topAnchor.constraint(equalTo: previousAnchor, constant: padding * 2),
@@ -216,14 +216,14 @@ class OptionsViewController: UIViewController {
             saveButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -padding)
         ])
         
-        addDoneButtonOnKeyboard()
+        addDoneButtonToKeyboard()
     }
     
     private func createLabel(text: String) -> UILabel {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = text
-        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.font = .systemFont(ofSize: 16, weight: .medium)
         return label
     }
     
@@ -232,57 +232,45 @@ class OptionsViewController: UIViewController {
         field.translatesAutoresizingMaskIntoConstraints = false
         field.placeholder = placeholder
         field.borderStyle = .roundedRect
-        field.keyboardType = .numbersAndPunctuation
+        field.font = .systemFont(ofSize: 16)
         return field
     }
     
-    private func setupUI() {
-        view.backgroundColor = .systemBackground
-        title = "Options"
-        
-        saveButton.layer.cornerRadius = 10
-        saveButton.backgroundColor = .systemBlue
-        saveButton.setTitle("Save Options", for: .normal)
-        saveButton.setTitleColor(.white, for: .normal)
-        
-        addDoneButtonOnKeyboard()
-    }
-    
     private func loadSettings() {
-        frequencyField?.text = String(format: "%.0f", AppConfig.messageFrequency)
-        weatherIntervalField?.text = String(format: "%.0f", AppConfig.weatherFetchInterval)
+        frequencyField.text = String(format: "%.0f", AppConfig.messageFrequency)
+        weatherIntervalField.text = String(format: "%.0f", AppConfig.weatherFetchInterval)
         
-        calloutsSwitch?.isOn = AppConfig.airportCallOuts
-        skullSwitch?.isOn = AppConfig.showSkull
-        autoStartSwitch?.isOn = AppConfig.autoStart
+        calloutsSwitch.isOn = AppConfig.airportCallOuts
+        skullSwitch.isOn = AppConfig.showSkull
+        autoStartSwitch.isOn = AppConfig.autoStart
         
-        messageField?.text = AppConfig.alertMessage
-        titleField?.text = AppConfig.appTitle
+        messageField.text = AppConfig.alertMessage
+        titleField.text = AppConfig.appTitle
     }
     
-    @IBAction func saveTapped(_ sender: UIButton) {
-        guard let freqText = frequencyField?.text, let freq = Double(freqText), freq > 0 else {
+    @objc private func saveTapped() {
+        guard let freqText = frequencyField.text, let freq = Double(freqText), freq > 0 else {
             showAlert(message: "Frequency must be > 0 seconds")
             return
         }
         
-        guard let weatherText = weatherIntervalField?.text, let weather = Double(weatherText), weather > 0 else {
+        guard let weatherText = weatherIntervalField.text, let weather = Double(weatherText), weather > 0 else {
             showAlert(message: "Weather interval must be > 0 seconds")
             return
         }
         
         AppConfig.messageFrequency = freq
         AppConfig.weatherFetchInterval = weather
-        AppConfig.airportCallOuts = calloutsSwitch?.isOn ?? true
-        AppConfig.showSkull = skullSwitch?.isOn ?? true
-        AppConfig.autoStart = autoStartSwitch?.isOn ?? false
+        AppConfig.airportCallOuts = calloutsSwitch.isOn
+        AppConfig.showSkull = skullSwitch.isOn
+        AppConfig.autoStart = autoStartSwitch.isOn
         
-        if let message = messageField?.text, !message.isEmpty {
+        if let message = messageField.text, !message.isEmpty {
             AppConfig.alertMessage = message
         }
         
-        if let title = titleField?.text, !title.isEmpty {
-            AppConfig.appTitle = title
+        if let titleText = titleField.text, !titleText.isEmpty {
+            AppConfig.appTitle = titleText
         }
         
         navigationController?.popViewController(animated: true)
@@ -294,21 +282,21 @@ class OptionsViewController: UIViewController {
         present(alert, animated: true)
     }
     
-    private func addDoneButtonOnKeyboard() {
-        let doneToolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 50))
-        doneToolbar.barStyle = .default
+    private func addDoneButtonToKeyboard() {
+        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 50))
+        toolbar.barStyle = .default
         let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(doneButtonAction))
-        doneToolbar.items = [flexSpace, done]
-        doneToolbar.sizeToFit()
+        let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(dismissKeyboard))
+        toolbar.items = [flexSpace, done]
+        toolbar.sizeToFit()
         
-        frequencyField?.inputAccessoryView = doneToolbar
-        weatherIntervalField?.inputAccessoryView = doneToolbar
-        messageField?.inputAccessoryView = doneToolbar
-        titleField?.inputAccessoryView = doneToolbar
+        frequencyField.inputAccessoryView = toolbar
+        weatherIntervalField.inputAccessoryView = toolbar
+        messageField.inputAccessoryView = toolbar
+        titleField.inputAccessoryView = toolbar
     }
     
-    @objc func doneButtonAction() {
+    @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
 }
