@@ -22,6 +22,10 @@ class OptionsViewController: UIViewController {
     private var skullSwitch: UISwitch!
     private var autoStartSwitch: UISwitch!
     private var groundModeSwitch: UISwitch!
+    private var trafficMilesField: UITextField!
+    private var traffic700Field: UITextField!
+    private var traffic500Field: UITextField!
+    private var traffic100Field: UITextField!
     private var saveButton: UIButton!
     
     private var frequencyLabel: UILabel!
@@ -219,6 +223,93 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = messageField.bottomAnchor
         
+        // Traffic Pattern Settings Section
+        let trafficHeader = createLabel(text: "Traffic Pattern Callouts")
+        trafficHeader.font = .boldSystemFont(ofSize: 18)
+        contentView.addSubview(trafficHeader)
+        NSLayoutConstraint.activate([
+            trafficHeader.topAnchor.constraint(equalTo: previousAnchor, constant: padding * 2),
+            trafficHeader.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding)
+        ])
+        previousAnchor = trafficHeader.bottomAnchor
+        
+        // Traffic Pattern Distance
+        let trafficMilesLabel = createLabel(text: "Within (miles):")
+        contentView.addSubview(trafficMilesLabel)
+        NSLayoutConstraint.activate([
+            trafficMilesLabel.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            trafficMilesLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            trafficMilesLabel.heightAnchor.constraint(equalToConstant: labelHeight)
+        ])
+        
+        trafficMilesField = createTextField(placeholder: "3")
+        trafficMilesField.keyboardType = .numberPad
+        contentView.addSubview(trafficMilesField)
+        NSLayoutConstraint.activate([
+            trafficMilesField.topAnchor.constraint(equalTo: trafficMilesLabel.bottomAnchor, constant: 4),
+            trafficMilesField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            trafficMilesField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
+            trafficMilesField.heightAnchor.constraint(equalToConstant: fieldHeight)
+        ])
+        previousAnchor = trafficMilesField.bottomAnchor
+        
+        // 700ft Callout Text
+        let traffic700Label = createLabel(text: "700ft Callout:")
+        contentView.addSubview(traffic700Label)
+        NSLayoutConstraint.activate([
+            traffic700Label.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            traffic700Label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic700Label.heightAnchor.constraint(equalToConstant: labelHeight)
+        ])
+        
+        traffic700Field = createTextField(placeholder: "Traffic pattern, 700 feet")
+        contentView.addSubview(traffic700Field)
+        NSLayoutConstraint.activate([
+            traffic700Field.topAnchor.constraint(equalTo: traffic700Label.bottomAnchor, constant: 4),
+            traffic700Field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic700Field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
+            traffic700Field.heightAnchor.constraint(equalToConstant: fieldHeight)
+        ])
+        previousAnchor = traffic700Field.bottomAnchor
+        
+        // 500ft Callout Text
+        let traffic500Label = createLabel(text: "500ft Callout:")
+        contentView.addSubview(traffic500Label)
+        NSLayoutConstraint.activate([
+            traffic500Label.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            traffic500Label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic500Label.heightAnchor.constraint(equalToConstant: labelHeight)
+        ])
+        
+        traffic500Field = createTextField(placeholder: "Traffic pattern, 500 feet")
+        contentView.addSubview(traffic500Field)
+        NSLayoutConstraint.activate([
+            traffic500Field.topAnchor.constraint(equalTo: traffic500Label.bottomAnchor, constant: 4),
+            traffic500Field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic500Field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
+            traffic500Field.heightAnchor.constraint(equalToConstant: fieldHeight)
+        ])
+        previousAnchor = traffic500Field.bottomAnchor
+        
+        // 100ft Callout Text
+        let traffic100Label = createLabel(text: "100ft Callout:")
+        contentView.addSubview(traffic100Label)
+        NSLayoutConstraint.activate([
+            traffic100Label.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            traffic100Label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic100Label.heightAnchor.constraint(equalToConstant: labelHeight)
+        ])
+        
+        traffic100Field = createTextField(placeholder: "Traffic pattern, 100 feet")
+        contentView.addSubview(traffic100Field)
+        NSLayoutConstraint.activate([
+            traffic100Field.topAnchor.constraint(equalTo: traffic100Label.bottomAnchor, constant: 4),
+            traffic100Field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            traffic100Field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
+            traffic100Field.heightAnchor.constraint(equalToConstant: fieldHeight)
+        ])
+        previousAnchor = traffic100Field.bottomAnchor
+        
         // Save Button
         saveButton = UIButton(type: .system)
         saveButton.translatesAutoresizingMaskIntoConstraints = false
@@ -267,6 +358,11 @@ class OptionsViewController: UIViewController {
         
         messageField.text = AppConfig.alertMessage
         titleField.text = AppConfig.appTitle
+        
+        trafficMilesField.text = String(format: "%.0f", AppConfig.trafficPatternMiles)
+        traffic700Field.text = AppConfig.traffic700ftText
+        traffic500Field.text = AppConfig.traffic500ftText
+        traffic100Field.text = AppConfig.traffic100ftText
     }
     
     @objc private func saveTapped() {
@@ -295,6 +391,23 @@ class OptionsViewController: UIViewController {
             AppConfig.appTitle = titleText
         }
         
+        // Traffic Pattern Settings
+        if let milesText = trafficMilesField.text, let miles = Double(milesText), miles > 0 {
+            AppConfig.trafficPatternMiles = miles
+        }
+        
+        if let text700 = traffic700Field.text, !text700.isEmpty {
+            AppConfig.traffic700ftText = text700
+        }
+        
+        if let text500 = traffic500Field.text, !text500.isEmpty {
+            AppConfig.traffic500ftText = text500
+        }
+        
+        if let text100 = traffic100Field.text, !text100.isEmpty {
+            AppConfig.traffic100ftText = text100
+        }
+        
         navigationController?.popViewController(animated: true)
     }
     
@@ -320,6 +433,10 @@ class OptionsViewController: UIViewController {
         weatherIntervalField.inputAccessoryView = toolbar
         messageField.inputAccessoryView = toolbar
         titleField.inputAccessoryView = toolbar
+        trafficMilesField.inputAccessoryView = toolbar
+        traffic700Field.inputAccessoryView = toolbar
+        traffic500Field.inputAccessoryView = toolbar
+        traffic100Field.inputAccessoryView = toolbar
     }
     
     @objc private func dismissKeyboard() {

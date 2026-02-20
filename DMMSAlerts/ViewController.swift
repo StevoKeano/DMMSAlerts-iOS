@@ -52,6 +52,26 @@ struct AppConfig {
         set { defaults.set(newValue, forKey: "GroundMode") }
     }
     
+    static var trafficPatternMiles: Double {
+        get { defaults.object(forKey: "TrafficPatternMiles") == nil ? 3.0 : defaults.double(forKey: "TrafficPatternMiles") }
+        set { defaults.set(newValue, forKey: "TrafficPatternMiles") }
+    }
+    
+    static var traffic700ftText: String {
+        get { defaults.string(forKey: "Traffic700ftText") ?? "Traffic pattern, 700 feet" }
+        set { defaults.set(newValue, forKey: "Traffic700ftText") }
+    }
+    
+    static var traffic500ftText: String {
+        get { defaults.string(forKey: "Traffic500ftText") ?? "Traffic pattern, 500 feet" }
+        set { defaults.set(newValue, forKey: "Traffic500ftText") }
+    }
+    
+    static var traffic100ftText: String {
+        get { defaults.string(forKey: "Traffic100ftText") ?? "Traffic pattern, 100 feet" }
+        set { defaults.set(newValue, forKey: "Traffic100ftText") }
+    }
+    
     static var alertMessage: String {
         get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK You are going to FALL OUT OF THE SKY LIKE A PIANO !!!AHHHHhhhhhh....!" }
         set { defaults.set(newValue, forKey: kAlertMessage) }
@@ -366,17 +386,16 @@ class ViewController: UIViewController {
             }
         }
         
-        // Traffic Pattern Callouts (within 3 miles and Airport Callouts enabled)
-        let distMiles = distKm * 0.621371
-        if distMiles <= 3.0 && AppConfig.airportCallOuts {
+        // Traffic Pattern Callouts (within configured miles and Airport Callouts enabled)
+        if distMiles <= AppConfig.trafficPatternMiles && AppConfig.airportCallOuts {
             if altitudeDiff <= 700 && altitudeDiff > 600 && !announced700ft {
-                speak(text: "Traffic pattern, 700 feet")
+                speak(text: AppConfig.traffic700ftText)
                 announced700ft = true
             } else if altitudeDiff <= 500 && altitudeDiff > 400 && !announced500ft {
-                speak(text: "Traffic pattern, 500 feet")
+                speak(text: AppConfig.traffic500ftText)
                 announced500ft = true
             } else if altitudeDiff <= 100 && altitudeDiff > 50 && !announced100ft {
-                speak(text: "Traffic pattern, 100 feet")
+                speak(text: AppConfig.traffic100ftText)
                 announced100ft = true
             }
         }
