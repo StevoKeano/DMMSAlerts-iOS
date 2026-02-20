@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Grok - fixed loop + 50-100kts" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Flight route - no loop, 60-90 kts target</name>
+  </metadata>
+
+  <wpt lat="30.476700" lon="-98.081070"><ele>802</ele><time>2025-05-22T18:58:00Z</time></wpt>
+  <wpt lat="30.482680" lon="-98.081756"><ele>789</ele><time>2025-05-22T18:58:13Z</time></wpt>
+  <wpt lat="30.488635" lon="-98.082431"><ele>776</ele><time>2025-05-22T18:58:26Z</time></wpt>
+  <wpt lat="30.495748" lon="-98.083226"><ele>761</ele><time>2025-05-22T18:58:39Z</time></wpt>
+  <wpt lat="30.502825" lon="-98.084004"><ele>746</ele><time>2025-05-22T18:58:52Z</time></wpt>
+  <wpt lat="30.509866" lon="-98.084766"><ele>731</ele><time>2025-05-22T18:59:05Z</time></wpt>
+  <wpt lat="30.516871" lon="-98.085514"><ele>715</ele><time>2025-05-22T18:59:18Z</time></wpt>
+  <wpt lat="30.523840" lon="-98.086247"><ele>700</ele><time>2025-05-22T18:59:31Z</time></wpt>
+
+  <!-- Accel phase -->
+  <wpt lat="30.530794" lon="-98.086973"><ele>700</ele><time>2025-05-22T18:59:44Z</time></wpt>
+  <wpt lat="30.535430" lon="-98.087457"><ele>600</ele><time>2025-05-22T18:59:57Z</time></wpt>
+  <wpt lat="30.540066" lon="-98.087941"><ele>244</ele><time>2025-05-22T19:00:10Z</time></wpt>
+  <wpt lat="30.547020" lon="-98.088667"><ele>244</ele><time>2025-05-22T19:00:23Z</time></wpt>
+
+</gpx>
+

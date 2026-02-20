@@ -18,9 +18,11 @@
 		AAF56F142F44D1620062BA2E /* AirportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F132F44D1620062BA2E /* AirportManager.swift */; };
 		AAF56F162F4509270062BA2E /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F152F4509260062BA2E /* WeatherManager.swift */; };
 		AAF56F1A2F469A280062BA2E /* OptionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF56F192F469A270062BA2E /* OptionsViewController.swift */; };
+		AA43DC852F48B91400D4FF6C /* route.gpx in Resources */ = {isa = PBXBuildFile; fileRef = AA43DC842F48B91400D4FF6C /* route.gpx */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AA43DC842F48B91400D4FF6C /* route.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = route.gpx; path = DMMSAlerts/route.gpx; sourceTree = "<group>"; };
 		AAF56EF82F4417290062BA2E /* DMMSAlerts.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DMMSAlerts.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAF56EFB2F4417290062BA2E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AAF56EFD2F44172A0062BA2E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -34,6 +36,7 @@
 		AAF56F132F44D1620062BA2E /* AirportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirportManager.swift; sourceTree = "<group>"; };
 		AAF56F152F4509260062BA2E /* WeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherManager.swift; sourceTree = "<group>"; };
 		AAF56F192F469A270062BA2E /* OptionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionsViewController.swift; sourceTree = "<group>"; };
+		ROUTE001 /* route */ = {isa = PBXFileReference; lastKnownFileType = public.xml; path = route; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +53,7 @@
 		AAF56EEF2F4417290062BA2E = {
 			isa = PBXGroup;
 			children = (
+				AA43DC842F48B91400D4FF6C /* route.gpx */,
 				AAF56F112F44D0360062BA2E /* Stations.csv */,
 				AAF56EFA2F4417290062BA2E /* DMMSAlerts */,
 				AAF56EF92F4417290062BA2E /* Products */,
@@ -77,6 +81,7 @@
 				AAF56F062F44174E0062BA2E /* LaunchScreen.storyboard */,
 				AAF56F092F44174E0062BA2E /* Info.plist */,
 				AAF56F0F2F44193C0062BA2E /* LocationManager.swift */,
+				ROUTE001 /* route */,
 				AAF56F152F4509260062BA2E /* WeatherManager.swift */,
 			);
 			path = DMMSAlerts;
@@ -144,6 +149,7 @@
 				AAF56F052F44174D0062BA2E /* Assets.xcassets in Resources */,
 				AAF56F032F44172A0062BA2E /* Main.storyboard in Resources */,
 				AAF56F122F44D0430062BA2E /* Stations.csv in Resources */,
+				AA43DC852F48B91400D4FF6C /* route.gpx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
