@@ -206,7 +206,7 @@ class ViewController: UIViewController {
         let nLabel = UILabel()
         nLabel.translatesAutoresizingMaskIntoConstraints = false
         nLabel.text = "N"
-        nLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        nLabel.font = .boldSystemFont(ofSize: 14)
         nLabel.textColor = .white
         compassView.addSubview(nLabel)
         
@@ -214,17 +214,17 @@ class ViewController: UIViewController {
         compassLabel = UILabel()
         compassLabel.translatesAutoresizingMaskIntoConstraints = false
         compassLabel.text = ""
-        compassLabel.font = .systemFont(ofSize: 17, weight: .medium)
+        compassLabel.font = .boldSystemFont(ofSize: 14)
         compassLabel.textColor = .white
         compassLabel.textAlignment = .center
         compassLabel.numberOfLines = 2
         view.addSubview(compassLabel)
         
         NSLayoutConstraint.activate([
-            compassView.widthAnchor.constraint(equalToConstant: 60),
+            compassView.widthAnchor.constraint(equalToConstant: 70),
             compassView.heightAnchor.constraint(equalToConstant: 60),
-            compassView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            compassView.topAnchor.constraint(equalTo: airportLabel.topAnchor, constant: -10),
+            compassView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            compassView.topAnchor.constraint(equalTo: airportLabel.topAnchor, constant: -5),
             
             compassBg.centerXAnchor.constraint(equalTo: compassView.centerXAnchor),
             compassBg.centerYAnchor.constraint(equalTo: compassView.centerYAnchor),
