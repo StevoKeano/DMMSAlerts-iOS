@@ -12,6 +12,9 @@ struct AppConfig {
     private static let kWeatherInterval = "WeatherFetchInterval"
     private static let kLandingBuffer = "LandingAltitudeBuffer"
     private static let kLandingDist = "LandingDistanceKm"
+    private static let kAutoStart = "AutoActivate"
+    private static let kAlertMessage = "AlertMessage"
+    private static let kAppTitle = "AppTitle"
     
     // Getters with Defaults
     static var dmmsThreshold: Double {
@@ -20,17 +23,42 @@ struct AppConfig {
     }
     
     static var messageFrequency: TimeInterval {
-        get { defaults.double(forKey: kMsgFreq) == 0 ? 5.0 : defaults.double(forKey: kMsgFreq) } // Default 5s
+        get { defaults.double(forKey: kMsgFreq) == 0 ? 5.0 : defaults.double(forKey: kMsgFreq) }
         set { defaults.set(newValue, forKey: kMsgFreq) }
     }
     
     static var weatherFetchInterval: TimeInterval {
-        get { defaults.double(forKey: kWeatherInterval) == 0 ? 300.0 : defaults.double(forKey: kWeatherInterval) } // Default 5 min
+        get { defaults.double(forKey: kWeatherInterval) == 0 ? 300.0 : defaults.double(forKey: kWeatherInterval) }
         set { defaults.set(newValue, forKey: kWeatherInterval) }
     }
     
-    static var landingAltitudeBuffer: Double { return 10.0 } // 10 ft
-    static var landingDistanceKm: Double { return 0.9 } // 0.9 km
+    static var showSkull: Bool {
+        get { defaults.object(forKey: "ShowSkull") == nil ? true : defaults.bool(forKey: "ShowSkull") }
+        set { defaults.set(newValue, forKey: "ShowSkull") }
+    }
+    
+    static var airportCallOuts: Bool {
+        get { defaults.object(forKey: "AirportCallOuts") == nil ? true : defaults.bool(forKey: "AirportCallOuts") }
+        set { defaults.set(newValue, forKey: "AirportCallOuts") }
+    }
+    
+    static var autoStart: Bool {
+        get { defaults.object(forKey: kAutoStart) == nil ? false : defaults.bool(forKey: kAutoStart) }
+        set { defaults.set(newValue, forKey: kAutoStart) }
+    }
+    
+    static var alertMessage: String {
+        get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK! STALL WARNING!" }
+        set { defaults.set(newValue, forKey: kAlertMessage) }
+    }
+    
+    static var appTitle: String {
+        get { defaults.string(forKey: kAppTitle) ?? "DMMS Alerts" }
+        set { defaults.set(newValue, forKey: kAppTitle) }
+    }
+    
+    static var landingAltitudeBuffer: Double { return 10.0 }
+    static var landingDistanceKm: Double { return 0.9 }
 }
 class ViewController: UIViewController {
     // MARK: - Outlets
@@ -78,13 +106,41 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(updateUI), name: .didUpdateLocation, object: nil)
         
         updateDMMSLabel()
+        
+        // Set title
+        self.title = AppConfig.appTitle
+        
+        // Style navigation bar
+        navigationController?.navigationBar.tintColor = .white
+        
+        // Auto-start if enabled
+        if AppConfig.autoStart {
+            isPaused = false
+            locationManager.startMonitoring()
+            statusLabel.text = "MONITORING"
+            startButton.setTitle("Pause", for: .normal)
+            startButton.backgroundColor = .systemRed
+        }
     }
-    
+    // Add this function to handle the click
+    @objc func openOptions() {
+        // Instantiate the OptionsVC manually since we aren't using a segue
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        
+        // NOTE: You must go to Storyboard -> Click Options Screen -> Identity Inspector -> Set Storyboard ID to "OptionsVC"
+        if let optionsVC = storyboard.instantiateViewController(withIdentifier: "OptionsVC") as? OptionsViewController {
+            self.navigationController?.pushViewController(optionsVC, animated: true)
+        }
+    }
+
     private func setupUI() {
         view.backgroundColor = UIColor.systemBlue
         warningImage.isHidden = true
         warningImage.image = UIImage(systemName: "exclamationmark.triangle.fill")
         statusLabel.text = "PAUSED"
+        statusLabel.numberOfLines = 0
+        statusLabel.lineBreakMode = .byWordWrapping
+        statusLabel.textAlignment = .center
         startButton.setTitle("Start Monitoring", for: .normal)
         startButton.backgroundColor = .systemGreen
         startButton.layer.cornerRadius = 10
@@ -118,7 +174,8 @@ class ViewController: UIViewController {
     // MARK: - Main Loop
     @objc private func updateUI() {
         guard !isPaused, let location = locationManager.currentLocation else { return }
-        
+        print("GPS: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+	
         let groundSpeed = locationManager.currentSpeed
         let alt = locationManager.currentAltitude
         let head = locationManager.currentHeading
@@ -189,24 +246,23 @@ class ViewController: UIViewController {
 
     private func performWeatherFetch(for airport: Airport, location: CLLocation) {
         lastWeatherFetchTime = Date()
+        
+        // Skip "US-" IDs
+        if airport.id.hasPrefix("US-") || airport.id.count > 4 {
+            print("Skipping ID Fetch for private/local strip \(airport.id). Using BBox.")
+            fetchBBox(location: location)
+            return
+        }
+        
         print("Fetching Weather for \(airport.id)...")
         
-        WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] metar in
-            // 10x FIX: Only accept the METAR if it actually has Wind Data (Speed & Direction)
+        // Explicitly type the closure parameter: (MetarData?)
+        WeatherManager.shared.fetchMetar(for: airport.id) { [weak self] (metar: MetarData?) in
             if let metar = metar, let _ = metar.wdir, let _ = metar.wspd {
                 self?.updateMetarUI(metar)
             } else {
-                // If primary failed OR returned empty data (Zombie METAR), try BBox
-                print("Primary METAR (\(airport.id)) missing wind data. Searching BBox...")
-                
-                WeatherManager.shared.fetchMetarByBox(location: location) { boxMetar in
-                    if let boxMetar = boxMetar, let id = boxMetar.icaoId {
-                        print("BBox Rescue: Found \(id)")
-                        self?.updateMetarUI(boxMetar)
-                    } else {
-                        print("BBox failed too. No weather available.")
-                    }
-                }
+                print("Primary METAR failed. Searching BBox...")
+                self?.fetchBBox(location: location)
             }
         }
     }
@@ -243,10 +299,10 @@ class ViewController: UIViewController {
     private func startAlert() {
         guard !isAlertActive else { return }
         isAlertActive = true
-        warningImage.isHidden = false
+        warningImage.isHidden = !AppConfig.showSkull
         view.backgroundColor = .systemRed
         
-        let text = "SPEED CHECK! STALL WARNING!"
+        let text = AppConfig.alertMessage
         speak(text: text)
         
         // Loop Alert (Configurable Frequency)
@@ -282,7 +338,16 @@ class ViewController: UIViewController {
         do { try AVAudioSession.sharedInstance().setActive(true) } catch {}
         synthesizer.speak(utterance)
     }
-    
+    private func fetchBBox(location: CLLocation) {
+     WeatherManager.shared.fetchMetarExpanding(location: location) { [weak self] (boxMetar: MetarData?) in
+         if let boxMetar = boxMetar, let id = boxMetar.icaoId {
+             print("BBox Rescue Successful: Found \(id)")
+             self?.updateMetarUI(boxMetar)
+         } else {
+             print("BBox Expanding Search failed completely. No valid stations found.")
+         }
+     }
+ }
     // MARK: - Actions
     @IBAction func startButtonTapped(_ sender: UIButton) {
         isPaused.toggle()
