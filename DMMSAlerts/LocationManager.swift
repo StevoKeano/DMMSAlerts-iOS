@@ -4,6 +4,7 @@ import UIKit
 
 extension Notification.Name {
     static let didUpdateLocation = Notification.Name("didUpdateLocation")
+    static let settingsDidChange = Notification.Name("settingsDidChange")
 }
 
 class LocationManager: NSObject, CLLocationManagerDelegate {

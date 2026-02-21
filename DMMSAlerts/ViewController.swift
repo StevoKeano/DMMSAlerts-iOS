@@ -138,6 +138,7 @@ class ViewController: UIViewController {
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateUI), name: .didUpdateLocation, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(settingsDidChange), name: .settingsDidChange, object: nil)
         
         updateDMMSLabel()
         
@@ -349,6 +350,14 @@ class ViewController: UIViewController {
         // Check Logic
         checkNearestAirport(location: location, altitudeFt: alt)
         checkAlerts(currentSpeed: effectiveAirspeed)
+    }
+    
+    @objc private func settingsDidChange() {
+        // Restart location manager to apply new settings (like ground mode)
+        if isPaused {
+            locationManager.stopMonitoring()
+            locationManager.startMonitoring()
+        }
     }
     
     private func checkNearestAirport(location: CLLocation, altitudeFt: Double) {

@@ -40,11 +40,34 @@ class OptionsViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         loadSettings()
+        setupKeyboardObservers()
+    }
+    
+    private func setupKeyboardObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let keyboardHeight = keyboardFrame.height
+        scrollView.contentInset.bottom = keyboardHeight
+        scrollView.scrollIndicatorInsets.bottom = keyboardHeight
+    }
+    
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        scrollView.contentInset.bottom = 0
+        scrollView.scrollIndicatorInsets.bottom = 0
     }
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         title = "Options"
+        
+        // Tap to dismiss keyboard
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
         
         // ScrollView
         scrollView = UIScrollView()
@@ -407,6 +430,8 @@ class OptionsViewController: UIViewController {
         if let text100 = traffic100Field.text, !text100.isEmpty {
             AppConfig.traffic100ftText = text100
         }
+        
+        NotificationCenter.default.post(name: .settingsDidChange, object: nil)
         
         navigationController?.popViewController(animated: true)
     }
