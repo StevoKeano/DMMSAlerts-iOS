@@ -1,1 +1,41 @@
-# DMMSAlerts-iOS\n\nThis project is an iOS application for DMMS Alerts.\n<a href="https://youtube.com/shorts/amdtjvCtZW0?si=LJ8sUriT-sw1b_fp">Watch on YouTube</a>\n\n## Installation\nFollow these steps to install the application.\n## Usage\nHow to use the application.
+DMMS Alerts - Aviation Stall Warning App
+
+<a href="https://youtube.com/shorts/amdtjvCtZW0?si=LJ8sUriT-sw1b_fp">Watch on YouTube</a>
+
+[Intro - App Launching]
+Welcome to DMMS Alerts, your personal aviation stall warning system.
+
+[Main Screen - Top Section]
+At the top, you see your GPS speed in knots... your altitude in feet... and your heading in degrees.
+
+The status shows MONITORING when actively tracking... PAUSED when you've stopped... or LANDING MODE when approaching an airport.
+
+Below that, the DMMS threshold picker lets you set your stall speed anywhere from 1 to 270 knots.
+
+[Alert Section]
+When your speed drops below the DMMS threshold, the screen turns RED and the warning triangle appears with a voice alert saying your custom message like, "Speed check! Stall warning!"
+
+[Compass Rose]
+On the right, the compass rose shows the direction to the nearest airport. The label below tells you which airport, and shows which heading to turn to - either left or right, whichever is shortest.
+
+[Bottom Section]
+At the bottom, you see the closest airport information including distance in miles, the bearing, and the field elevation.
+
+The Start/Pause button controls monitoring.
+
+[Options Page]
+Tapping Options takes you to the settings page.
+
+Here you can configure:
+- Alert frequency - how often the warning repeats
+- Weather fetch interval - how often METAR updates
+- Airport callouts toggle
+- Show warning icon toggle  
+- Auto-start monitoring on app launch
+- Ground or car mode for testing on the road
+- Custom alert message
+- Custom app title
+- Traffic pattern callouts - within a set distance from the airport, you'll hear callouts at 700 feet, 500 feet, and 100 feet above ground level
+
+[Summary]
+That's DMMS Alerts - keeping you aware of your speed and proximity to airports with customizable warnings and voice alerts.
