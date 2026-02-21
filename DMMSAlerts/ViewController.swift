@@ -18,17 +18,17 @@ struct AppConfig {
     
     // Getters with Defaults
     static var dmmsThreshold: Double {
-        get { defaults.double(forKey: kDMMS) == 0 ? 70.0 : defaults.double(forKey: kDMMS) }
+        get { defaults.double(forKey: kDMMS) == 0 ? 65.0 : defaults.double(forKey: kDMMS) }
         set { defaults.set(newValue, forKey: kDMMS) }
     }
     
     static var messageFrequency: TimeInterval {
-        get { defaults.double(forKey: kMsgFreq) == 0 ? 5.0 : defaults.double(forKey: kMsgFreq) }
+        get { defaults.double(forKey: kMsgFreq) == 0 ? 15.0 : defaults.double(forKey: kMsgFreq) }
         set { defaults.set(newValue, forKey: kMsgFreq) }
     }
     
     static var weatherFetchInterval: TimeInterval {
-        get { defaults.double(forKey: kWeatherInterval) == 0 ? 300.0 : defaults.double(forKey: kWeatherInterval) }
+        get { defaults.double(forKey: kWeatherInterval) == 0 ? 30.0 : defaults.double(forKey: kWeatherInterval) }
         set { defaults.set(newValue, forKey: kWeatherInterval) }
     }
     
@@ -58,22 +58,22 @@ struct AppConfig {
     }
     
     static var traffic700ftText: String {
-        get { defaults.string(forKey: "Traffic700ftText") ?? "Traffic pattern, 700 feet" }
+        get { defaults.string(forKey: "Traffic700ftText") ?? "700 feet, CHECK FOR TRAFFIC" }
         set { defaults.set(newValue, forKey: "Traffic700ftText") }
     }
     
     static var traffic500ftText: String {
-        get { defaults.string(forKey: "Traffic500ftText") ?? "Traffic pattern, 500 feet" }
+        get { defaults.string(forKey: "Traffic500ftText") ?? "500, CHECK FOR TRAFFIC" }
         set { defaults.set(newValue, forKey: "Traffic500ftText") }
     }
     
     static var traffic100ftText: String {
-        get { defaults.string(forKey: "Traffic100ftText") ?? "Traffic pattern, 100 feet" }
+        get { defaults.string(forKey: "Traffic100ftText") ?? "100" }
         set { defaults.set(newValue, forKey: "Traffic100ftText") }
     }
     
     static var alertMessage: String {
-        get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK You are going to FALL OUT OF THE SKY LIKE A PIANO !!!AHHHHhhhhhh....!" }
+        get { defaults.string(forKey: kAlertMessage) ?? "SPEED CHECK You are GONNA FALL OUT OF THE SKY LIKE ah !PIANO!" }
         set { defaults.set(newValue, forKey: kAlertMessage) }
     }
     
@@ -354,10 +354,8 @@ class ViewController: UIViewController {
     
     @objc private func settingsDidChange() {
         // Restart location manager to apply new settings (like ground mode)
-        if isPaused {
-            locationManager.stopMonitoring()
-            locationManager.startMonitoring()
-        }
+        locationManager.stopMonitoring()
+        locationManager.startMonitoring()
     }
     
     private func checkNearestAirport(location: CLLocation, altitudeFt: Double) {

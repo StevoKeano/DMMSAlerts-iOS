@@ -64,6 +64,18 @@ class OptionsViewController: UIViewController {
         view.backgroundColor = .systemBackground
         title = "Options"
         
+        // Toolbar with Save button
+        let toolbar = UIToolbar()
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        saveButton = UIButton(type: .system)
+        saveButton.setTitle("Save", for: .normal)
+        saveButton.titleLabel?.font = .boldSystemFont(ofSize: 17)
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        let saveItem = UIBarButtonItem(customView: saveButton)
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbar.items = [flexSpace, saveItem, flexSpace]
+        view.addSubview(toolbar)
+        
         // Tap to dismiss keyboard
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
@@ -80,7 +92,12 @@ class OptionsViewController: UIViewController {
         scrollView.addSubview(contentView)
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            toolbar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: 44),
+            
+            scrollView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -236,7 +253,7 @@ class OptionsViewController: UIViewController {
             messageLabel.heightAnchor.constraint(equalToConstant: labelHeight)
         ])
         
-        messageField = createTextField(placeholder: "SPEED CHECK! You are going to FALL OUT OF THE SKY LIKE A PIANO !!!AHHHHhhhhhh....")
+        messageField = createTextField(placeholder: "SPEED CHECK! You are going to FALL OUT OF THE SKY LIKE ah PIANO !!!....")
         contentView.addSubview(messageField)
         NSLayoutConstraint.activate([
             messageField.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 4),
@@ -285,7 +302,7 @@ class OptionsViewController: UIViewController {
             traffic700Label.heightAnchor.constraint(equalToConstant: labelHeight)
         ])
         
-        traffic700Field = createTextField(placeholder: "Traffic pattern, 700 feet")
+        traffic700Field = createTextField(placeholder: "700 feet, CHECK FOR TRAFFIC")
         contentView.addSubview(traffic700Field)
         NSLayoutConstraint.activate([
             traffic700Field.topAnchor.constraint(equalTo: traffic700Label.bottomAnchor, constant: 4),
@@ -304,7 +321,7 @@ class OptionsViewController: UIViewController {
             traffic500Label.heightAnchor.constraint(equalToConstant: labelHeight)
         ])
         
-        traffic500Field = createTextField(placeholder: "Traffic pattern, 500 feet")
+        traffic500Field = createTextField(placeholder: "500, CHECK FOR TRAFFIC")
         contentView.addSubview(traffic500Field)
         NSLayoutConstraint.activate([
             traffic500Field.topAnchor.constraint(equalTo: traffic500Label.bottomAnchor, constant: 4),
@@ -323,7 +340,7 @@ class OptionsViewController: UIViewController {
             traffic100Label.heightAnchor.constraint(equalToConstant: labelHeight)
         ])
         
-        traffic100Field = createTextField(placeholder: "Traffic pattern, 100 feet")
+        traffic100Field = createTextField(placeholder: "100")
         contentView.addSubview(traffic100Field)
         NSLayoutConstraint.activate([
             traffic100Field.topAnchor.constraint(equalTo: traffic100Label.bottomAnchor, constant: 4),
@@ -333,21 +350,16 @@ class OptionsViewController: UIViewController {
         ])
         previousAnchor = traffic100Field.bottomAnchor
         
-        // Save Button
-        saveButton = UIButton(type: .system)
-        saveButton.translatesAutoresizingMaskIntoConstraints = false
-        saveButton.setTitle("Save Options", for: .normal)
-        saveButton.setTitleColor(.white, for: .normal)
-        saveButton.backgroundColor = .systemBlue
-        saveButton.layer.cornerRadius = 10
-        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        contentView.addSubview(saveButton)
+        // Add padding at bottom of scroll
+        let spacer = UIView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(spacer)
         NSLayoutConstraint.activate([
-            saveButton.topAnchor.constraint(equalTo: previousAnchor, constant: padding * 2),
-            saveButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
-            saveButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
-            saveButton.heightAnchor.constraint(equalToConstant: 50),
-            saveButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -padding)
+            spacer.topAnchor.constraint(equalTo: previousAnchor, constant: padding),
+            spacer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            spacer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            spacer.heightAnchor.constraint(equalToConstant: 20),
+            spacer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -padding)
         ])
         
         addDoneButtonToKeyboard()
@@ -431,8 +443,8 @@ class OptionsViewController: UIViewController {
             AppConfig.traffic100ftText = text100
         }
         
-        NotificationCenter.default.post(name: .settingsDidChange, object: nil)
-        
+        // Dismiss keyboard and pop
+        view.endEditing(true)
         navigationController?.popViewController(animated: true)
     }
     
